@@ -8,5 +8,8 @@ yarn-error.log
 .env*
 !.env*.example
 
+hotel_data.json
 # Code coverage
 coverage
+src/controllers/hotel_data copy.json
+src/controllers/data.json
