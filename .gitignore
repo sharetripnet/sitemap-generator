@@ -11,5 +11,8 @@ yarn-error.log
 hotel_data.json
 # Code coverage
 coverage
-src/controllers/hotel_data copy.json
+
+src/controllers/hotel_data_copy.json
 src/controllers/data.json
+
+countries/*
