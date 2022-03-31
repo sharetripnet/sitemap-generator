@@ -92,7 +92,7 @@ const ReadJsonAndWriteGzip = async () => {
 
 
     let singleCountrySitemapTemplate = `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${hotelListString}</urlset>`;
-    fs.writeFileSync(`./countries/${fileNameXML}`, format(singleCountrySitemapTemplate));
+    fs.writeFileSync(`./countries/${fileNameXML}`, singleCountrySitemapTemplate);
     try {
       const source = `./countries/${fileNameXML}`;
       const destination = `./countries/${fileNameGZIP}`;
@@ -111,7 +111,7 @@ const ReadJsonAndWriteGzip = async () => {
 
   let SitemapIndexTemplate = `<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${hotelSiteMapListString}</sitemapindex>`;
 
-  fs.writeFileSync(`./countries/sitemap.xml`, format(SitemapIndexTemplate));
+  fs.writeFileSync(`./countries/sitemap.xml`, SitemapIndexTemplate);
 }
 
 
