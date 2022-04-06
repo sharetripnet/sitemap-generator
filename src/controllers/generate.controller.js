@@ -18,14 +18,18 @@ const { stringToSlug } = require('../utils/common');
 const gzip = createGzip();
 const pipe = promisify(pipeline);
 
+var dir = './countries/final_output';
+if (!fs.existsSync(dir)) {
+  fs.mkdirSync(dir, { recursive: true });
+}
 let SitemapIndexTemplateExmaple = `<?xml version="1.0" encoding="UTF-8"?>
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <sitemap>
-    <loc>http://www.example.com/sitemap1.xml.gz</loc>
-  </sitemap>
-  <sitemap>
-    <loc>http://www.example.com/sitemap2.xml.gz</loc>
-  </sitemap>
+<sitemap>
+<loc>http://www.example.com/sitemap1.xml.gz</loc>
+</sitemap>
+<sitemap>
+<loc>http://www.example.com/sitemap2.xml.gz</loc>
+</sitemap>
 </sitemapindex>
 `
 
@@ -69,9 +73,6 @@ const createCountryJsons = async () => {
 const ReadJsonAndWriteGzip = async () => {
   let hotelSiteMapListString = "";
 
-  //   <sitemap>
-  //   <loc>http://www.example.com/sitemap1.xml.gz</loc>
-  // </sitemap>
 
 
 
@@ -79,23 +80,31 @@ const ReadJsonAndWriteGzip = async () => {
     let fileName = `hotel_${stringToSlug(countryHASH)}.json`
     let fileNameXML = `hotel_${stringToSlug(countryHASH)}.xml`
     let fileNameGZIP = `${fileNameXML}.gz`;
-    let fileNameGZIP_URL = `<sitemap><loc>http://www.sharetrip.net/sitemap/${fileNameGZIP}</loc></sitemap>`;
+    let fileNameGZIP_URL = `<sitemap><loc>https://assets.sharetrip.net/sitemap/${fileNameGZIP}</loc></sitemap>`;
 
     hotelSiteMapListString = hotelSiteMapListString + fileNameGZIP_URL;
     let countryJSON = JSON.parse(fs.readFileSync(path.resolve("countries", fileName)));
     let hotelListString = "";
     for (let i = 0; i < countryJSON.length; i++) {
       let hotel = countryJSON[i];
-      let hotelUrl = `<url><loc>https://sharetrip.net/hotel-deals/${stringToSlug(hotel.name)}/${hotel.id}</loc></url>`;
+      let hotelName = stringToSlug(hotel.name);
+
+      
+      hotelName = hotelName.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+      
+
+      let hotelUrl = `<url><loc>https://sharetrip.net/hotel-deals/${hotelName}/${hotel.id}</loc></url>`;
       hotelListString = hotelListString + hotelUrl;
     }
 
 
-    let singleCountrySitemapTemplate = `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${hotelListString}</urlset>`;
+    let singleCountrySitemapTemplate = `<?xml version="1.0" encoding="UTF-8"?>
+    <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+          http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">${hotelListString}</urlset>`;
     fs.writeFileSync(`./countries/${fileNameXML}`, singleCountrySitemapTemplate);
     try {
       const source = `./countries/${fileNameXML}`;
-      const destination = `./countries/${fileNameGZIP}`;
+      const destination = `./countries/final_output/${fileNameGZIP}`;
       console.log('destination:', destination)
       do_gzip(source, destination).catch((err) => {
         console.error('An error occurred:', err);
@@ -109,9 +118,14 @@ const ReadJsonAndWriteGzip = async () => {
 
   }
 
-  let SitemapIndexTemplate = `<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${hotelSiteMapListString}</sitemapindex>`;
+  let SitemapIndexTemplate = `<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <sitemap>
+    <loc>https://sharetrip.net/sitemap.xml</loc>
+  </sitemap>
+  ${hotelSiteMapListString}
+  </sitemapindex>`;
 
-  fs.writeFileSync(`./countries/sitemap.xml`, SitemapIndexTemplate);
+  fs.writeFileSync(`./countries/final_output/sitemap.xml`, SitemapIndexTemplate);
 }
 
 
