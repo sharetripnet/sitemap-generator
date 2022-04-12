@@ -5,6 +5,13 @@ const stringToSlug = string => {
     // .replace(/[^\w ]+/g, '')
     .replace(/ +/g, '-')
     .replaceAll(".", '');
+
+
+    // .toLowerCase()
+    // .trim()
+    // .replace(/[^\w\s-]/g, '')
+    // .replace(/[\s_-]+/g, '-')
+    // .replace(/^-+|-+$/g, '');
 };
 
 
