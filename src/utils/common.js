@@ -4,7 +4,7 @@ const stringToSlug = string => {
     .toLowerCase()
     // .replace(/[^\w ]+/g, '')
     .replace(/ +/g, '-')
-    .replace(/\./g, '');
+    .replaceAll(".", '');
 };
 
 
