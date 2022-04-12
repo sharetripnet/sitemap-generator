@@ -18,7 +18,7 @@ const { stringToSlug } = require('../utils/common');
 const gzip = createGzip();
 const pipe = promisify(pipeline);
 
-var dir = './countries/final_output';
+var dir = './countries/sitemap';
 if (!fs.existsSync(dir)) {
   fs.mkdirSync(dir, { recursive: true });
 }
@@ -104,7 +104,7 @@ const ReadJsonAndWriteGzip = async () => {
     fs.writeFileSync(`./countries/${fileNameXML}`, singleCountrySitemapTemplate);
     try {
       const source = `./countries/${fileNameXML}`;
-      const destination = `./countries/final_output/${fileNameGZIP}`;
+      const destination = `./countries/sitemap/${fileNameGZIP}`;
       console.log('destination:', destination)
       do_gzip(source, destination).catch((err) => {
         console.error('An error occurred:', err);
@@ -125,7 +125,7 @@ const ReadJsonAndWriteGzip = async () => {
   ${hotelSiteMapListString}
   </sitemapindex>`;
 
-  fs.writeFileSync(`./countries/final_output/sitemap.xml`, SitemapIndexTemplate);
+  fs.writeFileSync(`./countries/sitemap/sitemap.xml`, SitemapIndexTemplate);
 }
 
 
