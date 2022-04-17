@@ -2,9 +2,16 @@ const stringToSlug = string => {
   return string
     .trim()
     .toLowerCase()
-    .replaceAll(".", '')
     // .replace(/[^\w ]+/g, '')
-    .replace(/ +/g, '-');
+    .replace(/ +/g, '-')
+    .replaceAll(".", '');
+
+
+    // .toLowerCase()
+    // .trim()
+    // .replace(/[^\w\s-]/g, '')
+    // .replace(/[\s_-]+/g, '-')
+    // .replace(/^-+|-+$/g, '');
 };
 
 
