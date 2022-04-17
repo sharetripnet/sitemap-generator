@@ -4,9 +4,15 @@ const config = require('./config/config');
 const logger = require('./config/logger');
 
 const appRunAndReturn = () => {
-  return app.listen(config.port, () => {
-    logger.info(`Listening to port ${config.port}`);
-  });
+  try {
+    return app.listen(config.port, () => {
+      logger.info(`Listening to port ${config.port}`);
+    });
+  } catch (error) {
+    app.listen(config.port, () => {
+      logger.info(`Listening to port ${config.port + 1}`);
+    });
+  }
 };
 
 let server;
