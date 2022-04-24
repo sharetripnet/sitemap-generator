@@ -1,34 +1,25 @@
 const httpStatus = require("http-status");
-var format = require("xml-formatter");
-
 const { promisify } = require("util");
 const { createGzip } = require("zlib");
 const { pipeline } = require("stream");
 const { createReadStream, createWriteStream } = require("fs");
-
 const catchAsync = require("../utils/catchAsync");
 const fs = require("fs");
 const path = require("path");
-const { json } = require("express");
-const { JsonWebTokenError } = require("jsonwebtoken");
-const { stringToSlug } = require("../utils/common");
-const gzip = createGzip();
+// const { slugify } = require("../utils/common");
 const pipe = promisify(pipeline);
+const csvtojson = require("csvtojson");
+const { parseAsync } = require("json2csv");
+const slugify = require("slugify");
 
 var dir = "./countries/sitemap";
 if (!fs.existsSync(dir)) {
   fs.mkdirSync(dir, { recursive: true });
 }
-let SitemapIndexTemplateExmaple = `<?xml version="1.0" encoding="UTF-8"?>
-<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-<sitemap>
-<loc>http://www.example.com/sitemap1.xml.gz</loc>
-</sitemap>
-<sitemap>
-<loc>http://www.example.com/sitemap2.xml.gz</loc>
-</sitemap>
-</sitemapindex>
-`;
+
+let data = {};
+let countryTree = {};
+const urlsData = [];
 
 async function do_gzip(input, output) {
   const gzip = createGzip();
@@ -37,49 +28,9 @@ async function do_gzip(input, output) {
   await pipe(source, gzip, destination);
 }
 
-let singleSitemapTemplateExmaple = `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-                                  <url>
-                                  <loc>https://sharetrip.net/</loc>
-                                  </url>
-                                  </urlset>
-                                  `;
-
-// let data = JSON.parse(fs.readFileSync(path.resolve(__dirname, 'hotel_data.json')));
-let data = JSON.parse(
-  fs.readFileSync(path.resolve(__dirname, "hotel_data_copy.json"))
-);
-
-let countryTree = {};
-
-for (let i = 0; i < data.length; i++) {
-  let hotel = data[i];
-  let hash = hotel.countryName + "_" + hotel.countryCode;
-  if (!countryTree[hash]) {
-    countryTree[hash] = [hotel];
-  } else {
-    countryTree[hash].push(hotel);
-  }
-}
-
-const MAX_XML_LENGTH = 40000;
-const countryKeys = Object.keys(countryTree);
-countryKeys.forEach((item) => {
-  const itemLength = countryTree[item].length;
-  if (itemLength > MAX_XML_LENGTH) {
-    let hashSet = countryTree[item];
-    delete countryTree[item];
-    const totalParts = Math.ceil(itemLength / MAX_XML_LENGTH);
-    for (i = 1; i <= totalParts; i++) {
-      const startPoint = i === 1 ? 0 : i * MAX_XML_LENGTH - MAX_XML_LENGTH;
-      const endPoint = MAX_XML_LENGTH * i;
-      countryTree[`${item}_${i}`] = hashSet.slice(startPoint, endPoint);
-    }
-  }
-});
-
 const createCountryJsons = async () => {
   for (const countryHASH in countryTree) {
-    let fileName = `hotel_${stringToSlug(countryHASH)}.json`;
+    let fileName = `hotel_${slugify(countryHASH)}.json`;
     fs.writeFileSync(
       `./countries/${fileName}`,
       JSON.stringify(countryTree[countryHASH])
@@ -91,8 +42,8 @@ const ReadJsonAndWriteGzip = async () => {
   let hotelSiteMapListString = "";
 
   for (const countryHASH in countryTree) {
-    let fileName = `hotel_${stringToSlug(countryHASH)}.json`;
-    let fileNameXML = `hotel_${stringToSlug(countryHASH)}.xml`;
+    let fileName = `hotel_${slugify(countryHASH)}.json`;
+    let fileNameXML = `hotel_${slugify(countryHASH)}.xml`;
     let fileNameGZIP = `${fileNameXML}.gz`;
     let fileNameGZIP_URL = `<sitemap><loc>https://assets.sharetrip.net/sitemap/${fileNameGZIP}</loc></sitemap>`;
 
@@ -103,33 +54,36 @@ const ReadJsonAndWriteGzip = async () => {
     let hotelListString = "";
     for (let i = 0; i < countryJSON.length; i++) {
       let hotel = countryJSON[i];
-      let hotelName = stringToSlug(hotel.name);
+      let hotelName = slugify(hotel.hotelName);
 
-      hotelName = hotelName
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;");
+      // hotelName = hotelName
+      //   .replaceAll("&", "&amp;")
+      //   .replaceAll("<", "&lt;")
+      //   .replaceAll(">", "&gt;");
 
-      let hotelUrl = `<url><loc>https://sharetrip.net/hotel-deals/${hotelName}/${hotel.id}</loc></url>`;
+      let hotelUrl = `<url><loc>https://sharetrip.net/hotel-deals/${hotelName}/${hotel.hotelId}</loc></url>`;
       hotelListString = hotelListString + hotelUrl;
+      urlsData.push({
+        "Hotel Url": `https://sharetrip.net/hotel-deals/${hotelName}/${hotel.hotelId}`,
+      });
     }
 
     let singleCountrySitemapTemplate = `<?xml version="1.0" encoding="UTF-8"?>
     <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
           http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">${hotelListString}</urlset>`;
+
     fs.writeFileSync(
       `./countries/${fileNameXML}`,
       singleCountrySitemapTemplate
     );
+
     try {
       const source = `./countries/${fileNameXML}`;
       const destination = `./countries/sitemap/${fileNameGZIP}`;
-      console.log("destination:", destination);
-      do_gzip(source, destination).catch((err) => {
-        console.error("An error occurred:", err);
-        process.exitCode = 1;
-      });
+      await do_gzip(source, destination);
+      console.log("📂 Destination:", destination);
     } catch (err) {
+      process.exitCode = 1;
       console.error(err);
     }
   }
@@ -144,9 +98,47 @@ const ReadJsonAndWriteGzip = async () => {
   fs.writeFileSync(`./countries/sitemap/sitemap.xml`, SitemapIndexTemplate);
 };
 
+const createUrlCSV = async () => {
+  const fields = ["Hotel Url"];
+  parseAsync(urlsData, { fields }).then((csv) => {
+    fs.writeFileSync(path.resolve(__dirname, "hotel_urls.csv"), csv);
+    console.log("=== ✅ done ===");
+  });
+};
+
 const init = async () => {
+  const csvFilePath = path.resolve(__dirname, "hotel_data.csv");
+  data = await csvtojson({}).fromFile(csvFilePath);
+
+  for (let i = 0; i < data.length; i++) {
+    let hotel = data[i];
+    let hash = hotel.countryName + "_" + hotel.countryCode;
+    if (!countryTree[hash]) {
+      countryTree[hash] = [hotel];
+    } else {
+      countryTree[hash].push(hotel);
+    }
+  }
+
+  const MAX_XML_LENGTH = 40000;
+  const countryKeys = Object.keys(countryTree);
+  countryKeys.forEach((item) => {
+    const itemLength = countryTree[item].length;
+    if (itemLength > MAX_XML_LENGTH) {
+      let hashSet = countryTree[item];
+      delete countryTree[item];
+      const totalParts = Math.ceil(itemLength / MAX_XML_LENGTH);
+      for (i = 1; i <= totalParts; i++) {
+        const startPoint = i === 1 ? 0 : i * MAX_XML_LENGTH - MAX_XML_LENGTH;
+        const endPoint = MAX_XML_LENGTH * i;
+        countryTree[`${item}_${i}`] = hashSet.slice(startPoint, endPoint);
+      }
+    }
+  });
+
   await createCountryJsons();
   await ReadJsonAndWriteGzip();
+  await createUrlCSV();
 };
 
 init();
@@ -156,6 +148,7 @@ const generateSitemap = catchAsync(async (req, res) => {
     done: true,
   });
 });
+
 module.exports = {
   generateSitemap,
 };

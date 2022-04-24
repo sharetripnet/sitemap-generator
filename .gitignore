@@ -12,7 +12,8 @@ hotel_data.json
 # Code coverage
 coverage
 
-src/controllers/hotel_data_copy.json
-src/controllers/data.json
+src/controllers/hotel_data.csv
+src/controllers/hotel_urls.csv
 
 countries/*
+
