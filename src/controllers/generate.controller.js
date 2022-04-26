@@ -6,11 +6,10 @@ const { createReadStream, createWriteStream } = require("fs");
 const catchAsync = require("../utils/catchAsync");
 const fs = require("fs");
 const path = require("path");
-// const { slugify } = require("../utils/common");
+const { stringToSlug } = require("../utils/common");
 const pipe = promisify(pipeline);
 const csvtojson = require("csvtojson");
 const { parseAsync } = require("json2csv");
-const slugify = require("slugify");
 
 var dir = "./countries/sitemap";
 if (!fs.existsSync(dir)) {
@@ -30,7 +29,7 @@ async function do_gzip(input, output) {
 
 const createCountryJsons = async () => {
   for (const countryHASH in countryTree) {
-    let fileName = `hotel_${slugify(countryHASH)}.json`;
+    let fileName = `hotel_${stringToSlug(countryHASH)}.json`;
     fs.writeFileSync(
       `./countries/${fileName}`,
       JSON.stringify(countryTree[countryHASH])
@@ -42,8 +41,8 @@ const ReadJsonAndWriteGzip = async () => {
   let hotelSiteMapListString = "";
 
   for (const countryHASH in countryTree) {
-    let fileName = `hotel_${slugify(countryHASH)}.json`;
-    let fileNameXML = `hotel_${slugify(countryHASH)}.xml`;
+    let fileName = `hotel_${stringToSlug(countryHASH)}.json`;
+    let fileNameXML = `hotel_${stringToSlug(countryHASH)}.xml`;
     let fileNameGZIP = `${fileNameXML}.gz`;
     let fileNameGZIP_URL = `<sitemap><loc>https://assets.sharetrip.net/sitemap/${fileNameGZIP}</loc></sitemap>`;
 
@@ -54,12 +53,7 @@ const ReadJsonAndWriteGzip = async () => {
     let hotelListString = "";
     for (let i = 0; i < countryJSON.length; i++) {
       let hotel = countryJSON[i];
-      let hotelName = slugify(hotel.hotelName);
-
-      // hotelName = hotelName
-      //   .replaceAll("&", "&amp;")
-      //   .replaceAll("<", "&lt;")
-      //   .replaceAll(">", "&gt;");
+      let hotelName = stringToSlug(hotel.hotelName);
 
       let hotelUrl = `<url><loc>https://sharetrip.net/hotel-deals/${hotelName}/${hotel.hotelId}</loc></url>`;
       hotelListString = hotelListString + hotelUrl;
@@ -108,11 +102,21 @@ const createUrlCSV = async () => {
 
 const init = async () => {
   const csvFilePath = path.resolve(__dirname, "hotel_data.csv");
-  data = await csvtojson({}).fromFile(csvFilePath);
+  data = await csvtojson({
+    headers: [
+      "id",
+      "hotelId",
+      "hotelName",
+      "kind",
+      "cityName",
+      "countryName",
+      "countryCode",
+    ],
+  }).fromFile(csvFilePath);
 
   for (let i = 0; i < data.length; i++) {
     let hotel = data[i];
-    let hash = hotel.countryName + "_" + hotel.countryCode;
+    let hash = hotel.countryName + "-" + hotel.countryCode;
     if (!countryTree[hash]) {
       countryTree[hash] = [hotel];
     } else {
@@ -122,6 +126,7 @@ const init = async () => {
 
   const MAX_XML_LENGTH = 40000;
   const countryKeys = Object.keys(countryTree);
+
   countryKeys.forEach((item) => {
     const itemLength = countryTree[item].length;
     if (itemLength > MAX_XML_LENGTH) {
@@ -131,7 +136,7 @@ const init = async () => {
       for (i = 1; i <= totalParts; i++) {
         const startPoint = i === 1 ? 0 : i * MAX_XML_LENGTH - MAX_XML_LENGTH;
         const endPoint = MAX_XML_LENGTH * i;
-        countryTree[`${item}_${i}`] = hashSet.slice(startPoint, endPoint);
+        countryTree[`${item}-${i}`] = hashSet.slice(startPoint, endPoint);
       }
     }
   });
