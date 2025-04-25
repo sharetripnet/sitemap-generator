@@ -55,10 +55,10 @@ const ReadJsonAndWriteGzip = async () => {
       let hotel = countryJSON[i];
       let hotelName = stringToSlug(hotel.hotelName);
 
-      let hotelUrl = `<url><loc>https://sharetrip.net/hotel-deals/${hotelName}/${hotel.hotelId}</loc></url>`;
+      let hotelUrl = `<url><loc>https://sharetrip.net/hotel-deals/${hotelName}/${hotel.id}</loc></url>`;
       hotelListString = hotelListString + hotelUrl;
       urlsData.push({
-        "Hotel Url": `https://sharetrip.net/hotel-deals/${hotelName}/${hotel.hotelId}`,
+        "Hotel Url": `https://sharetrip.net/hotel-deals/${hotelName}/${hotel.id}`,
       });
     }
 
@@ -105,18 +105,19 @@ const init = async () => {
   data = await csvtojson({
     headers: [
       "id",
-      "hotelId",
-      "hotelName",
-      "kind",
       "cityName",
-      "countryName",
       "countryCode",
+      "countryName",
+      "hotelName",
+      // "kind",
+      // "hotelId",
     ],
   }).fromFile(csvFilePath);
 
   for (let i = 0; i < data.length; i++) {
     let hotel = data[i];
     let hash = hotel.countryName + "-" + hotel.countryCode;
+    // console.log("hash", hash);
     if (!countryTree[hash]) {
       countryTree[hash] = [hotel];
     } else {
